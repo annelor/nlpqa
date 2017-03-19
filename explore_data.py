@@ -8,22 +8,25 @@ unique_qids = np.unique(np.hstack((df['qid1'], df['qid2'])))
 
 print('Total number of questions = %d' % unique_qids.shape[0])
 
-# ########### EXTRACT FEATURES ########
+# ########### EXTRACT GROUPS ########
 
-from sklearn.feature_extraction import text # noqa
-from sklearn.manifold import TSNE # noqa
+groups = [[]]
+for idx in range(df.shape[0]):
+    print(idx)
+    if df['is_duplicate'][idx] == 1:
+        is_duplicate_pair = False
+        for g in groups:
+            if df['qid1'][idx] in g and df['qid2'][idx] not in g:
+                g.append(df['qid2'][idx])
+                is_duplicate_pair = True
+                break
+            elif df['qid2'][idx] in g and df['qid1'][idx] not in g:
+                g.append(df['qid1'][idx])
+                is_duplicate_pair = True
+                break
+        if not is_duplicate_pair:
+            groups.append([df['qid1'][idx], df['qid2'][idx]])
 
-print('Doing TFIDF')
-tfidf = text.TfidfVectorizer(max_df=1)
-X = tfidf.fit_transform(df['question1'])
-
-print('Doing TSNE')
-tsne = TSNE(n_components=2, init='pca', random_state=0)
-Y = tsne.fit_transform(X[:1000].toarray())
-
-# ########### Plot the data ###########
-
-print('Plot')
-import matplotlib.pyplot as plt # noqa
-plt.plot(Y[:, 0], Y[:, 1], 'bo')
-plt.show()
+for g in groups:
+    if len(g) > 2:
+        print(g)
