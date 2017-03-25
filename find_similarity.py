@@ -62,12 +62,31 @@ def find_sentence_similarity(sent1, sent2):
 
 if __name__ == '__main__':
 
+    from sklearn.cross_validation import StratifiedKFold, cross_val_score
+    from sklearn.linear_model import LogisticRegression
+    from scipy.stats import spearmanr
+
+    n_samples = 20
     df = pd.read_csv('data/train.csv')
 
+    # let's find similarity
     def func(series):
         sim = find_sentence_similarity(series['question1'].decode('utf-8'),
                                        series['question2'].decode('utf-8'))
         print('Question pair %d, %0.2f, duplicate=%d'
               % (series['id'], sim, series['is_duplicate']))
+        return sim
+    df_sim = df.head(n_samples).apply(func, axis=1)
 
-    df.head(20).apply(func, axis=1)
+    # let's compute correlation
+    corr = spearmanr(df_sim.values, df['is_duplicate'][:n_samples].values)
+    print(corr)
+
+    # let's do classification
+    X = df_sim.values[:, None]
+    y = df['is_duplicate'][:n_samples]
+
+    skf = StratifiedKFold(y, n_folds=5)
+    clf = LogisticRegression()
+    score = cross_val_score(clf, X, y, cv=skf)
+    print('Prediction accuracy is %f' % score)
