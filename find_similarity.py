@@ -66,7 +66,7 @@ if __name__ == '__main__':
     from sklearn.linear_model import LogisticRegression
     from scipy.stats import spearmanr
 
-    n_samples = 20
+    n_samples = 200
     df = pd.read_csv('data/train.csv')
 
     # let's find similarity
@@ -89,4 +89,4 @@ if __name__ == '__main__':
     skf = StratifiedKFold(y, n_folds=5)
     clf = LogisticRegression()
     score = cross_val_score(clf, X, y, cv=skf)
-    print('Prediction accuracy is %f' % score)
+    print('Prediction accuracy is %f' % np.mean(score))
