@@ -6,6 +6,8 @@ from itertools import product
 from nltk.corpus import wordnet as wn
 from nltk.tokenize import RegexpTokenizer
 
+from sklearn.externals.joblib import Parallel, delayed
+
 tokenizer = RegexpTokenizer('\w+|\$[\d\.]+|\S+')
 
 
@@ -73,7 +75,8 @@ if __name__ == '__main__':
     from sklearn.linear_model import LogisticRegression
     from scipy.stats import spearmanr
 
-    n_samples = 200
+    n_samples = 400
+    n_jobs = 4
     df = pd.read_csv('data/train.csv')
 
     # let's find similarity
@@ -83,15 +86,22 @@ if __name__ == '__main__':
         print('Question pair %d, %0.2f, duplicate=%d'
               % (series['id'], sim, series['is_duplicate']))
         return sim
-    df_sim = df.head(n_samples).apply(func, axis=1)
+
+    question1 = df['question1'].values[:n_samples]
+    question2 = df['question2'].values[:n_samples]
+    parallel_similarity = delayed(find_sentence_similarity)
+    sim = Parallel(n_jobs=n_jobs, verbose=10)(
+        parallel_similarity(df.ix[idx]['question1'], df.ix[idx]['question2'])
+        for idx in range(n_samples))
+    sim = np.array(sim)
 
     # let's compute correlation
-    corr = spearmanr(df_sim.values, df['is_duplicate'][:n_samples].values)
+    corr = spearmanr(sim, df['is_duplicate'][:n_samples].values)
     print(corr)
 
     # let's do classification
-    X = df_sim.values[:, None]
-    y = df['is_duplicate'][:n_samples]
+    X = sim[~np.isnan(sim)][:, None]
+    y = df['is_duplicate'][:n_samples][~np.isnan(sim)]
 
     skf = StratifiedKFold(y, n_folds=5)
     clf = LogisticRegression()
