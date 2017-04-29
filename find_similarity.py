@@ -71,7 +71,6 @@ if __name__ == '__main__':
 
     from sklearn.cross_validation import StratifiedKFold, cross_val_score
     from sklearn.linear_model import LogisticRegression
-    from sklearn.metrics import log_loss
     from scipy.stats import spearmanr
 
     n_samples = 200
@@ -96,5 +95,5 @@ if __name__ == '__main__':
 
     skf = StratifiedKFold(y, n_folds=5)
     clf = LogisticRegression()
-    score = cross_val_score(clf, X, y, scoring=log_loss, cv=skf)
+    score = -cross_val_score(clf, X, y, scoring='neg_log_loss', cv=skf)
     print('Prediction accuracy is %f' % np.mean(score))
