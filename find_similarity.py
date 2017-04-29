@@ -31,11 +31,18 @@ def find_best_sentence_match(words1, words2):
             for w2 in words2:
                 best_score.append(_find_best_word_match(w1, w2))
 
-            if max(best_score):  # XXX: np.nanmax
-                sim.append(max(best_score))
+            if np.nanmax(best_score):  # XXX: np.nanmax
+                sim.append(np.nanmax(best_score))
             else:
                 sim.append(np.nan)
     return np.array(sim)
+
+
+def _path_similarity(s1, s2):
+    sim = s1.path_similarity(s2)
+    if sim is None:
+        sim = np.nan
+    return sim
 
 
 def _find_best_word_match(w1, w2):
@@ -43,10 +50,10 @@ def _find_best_word_match(w1, w2):
     syn2 = wn.synsets(w2)
 
     if syn1 and syn2:
-        return max(s1.path_similarity(s2) for (s1, s2)
-                   in product(syn1, syn2))
+        return np.nanmax([_path_similarity(s1, s2) for (s1, s2)
+                          in product(syn1, syn2)])
     else:
-        return None
+        return np.nan
 
 
 def find_sentence_similarity(sent1, sent2):
@@ -64,6 +71,7 @@ if __name__ == '__main__':
 
     from sklearn.cross_validation import StratifiedKFold, cross_val_score
     from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import log_loss
     from scipy.stats import spearmanr
 
     n_samples = 200
@@ -71,8 +79,8 @@ if __name__ == '__main__':
 
     # let's find similarity
     def func(series):
-        sim = find_sentence_similarity(series['question1'].decode('utf-8'),
-                                       series['question2'].decode('utf-8'))
+        sim = find_sentence_similarity(series['question1'],
+                                       series['question2'])
         print('Question pair %d, %0.2f, duplicate=%d'
               % (series['id'], sim, series['is_duplicate']))
         return sim
@@ -88,5 +96,5 @@ if __name__ == '__main__':
 
     skf = StratifiedKFold(y, n_folds=5)
     clf = LogisticRegression()
-    score = cross_val_score(clf, X, y, cv=skf)
+    score = cross_val_score(clf, X, y, scoring=log_loss, cv=skf)
     print('Prediction accuracy is %f' % np.mean(score))
